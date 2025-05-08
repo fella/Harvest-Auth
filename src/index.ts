@@ -3,7 +3,7 @@ import { jwtVerify } from 'jose'
 
 const app = new OpenAPIHono()
 
-const REQUIRED_ROLE = 'Admin'
+// const REQUIRED_ROLE = 'Admin'
 
 app.use('/api/protected', async (c, next) => {
   const authHeader = c.req.header('Authorization')
