@@ -14,6 +14,9 @@ app.doc('/openapi.json', {
 })
 // Protected route
 app.get('/', (c) => c.text('Hello World'))
+
+const REQUIRED_ROLE = 'admin'
+
 // Middleware for role checking
 app.use('/api/protected', async (c, next) => {
   const authHeader = c.req.header('Authorization')
