@@ -1,7 +1,6 @@
 name = "auth0-api-worker"
-type = "typescript"
+main = "src/index.ts"
 compatibility_date = "2025-05-08"
-usage_model = "bundled"
 
 [vars]
 AUTH0_DOMAIN = "dev-n6li42pa7lfgyazm.us.auth0.com"
