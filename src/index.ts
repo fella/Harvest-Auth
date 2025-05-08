@@ -12,5 +12,10 @@ app.doc('/openapi.json', {
     version: '1.0.0'
   }
 })
+// Protected route
+app.get('/api/protected', (c) => {
+  const user = c.get('user')
+  return c.json({ message: 'Access granted', user })
+})
 
 export default app
