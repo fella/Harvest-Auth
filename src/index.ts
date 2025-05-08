@@ -37,7 +37,7 @@ app.use('/api/protected', async (c, next) => {
       audience: c.env.AUTH0_AUDIENCE
     })
 
-    const roles = payload['https://api.yourdomain.com/roles'] || []
+    const roles = payload['https://api.harvest.org/roles'] || []
     if (!roles.includes('admin')) {
       return c.text('Forbidden: Insufficient role', 403)
     }
