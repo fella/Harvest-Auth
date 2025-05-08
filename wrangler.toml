@@ -1,1 +1,4 @@
-
+name = "auth0-api-worker"
+type = "typescript"
+compatibility_date = "2025-05-08"
+usage_model = "bundled"
