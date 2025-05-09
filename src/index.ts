@@ -6,14 +6,20 @@ const app = new Hono()
 // Auth middleware
 app.use('/api/protected', async (c, next) => {
   const authHeader = c.req.header('Authorization')
+  console.log('Auth Header:', authHeader)
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.warn('Missing or malformed Authorization header')
     return c.text('Missing or invalid Authorization header', 401)
   }
 
-  const token = authHeader.slice(7) // remove "Bearer "
+  const token = authHeader.slice(7)
+
   try {
     const JWKS = await fetch(`https://${c.env.AUTH0_DOMAIN}/.well-known/jwks.json`).then(res => res.json())
-    const [key] = JWKS.keys
+    console.log('JWKS keys:', JWKS.keys.map(k => k.kid))
+
+    const [key] = JWKS.keys // ⚠️ Temporary logic, we'll fix this later
     const keyData = await crypto.subtle.importKey(
       'jwk',
       key,
@@ -21,14 +27,19 @@ app.use('/api/protected', async (c, next) => {
       false,
       ['verify']
     )
-    const { payload } = await jwtVerify(token, keyData, {
+
+    const { payload, protectedHeader } = await jwtVerify(token, keyData, {
       issuer: `https://${c.env.AUTH0_DOMAIN}/`,
       audience: c.env.AUTH0_AUDIENCE
     })
+
+    console.log('JWT Header:', protectedHeader)
+    console.log('JWT Payload:', payload)
+
     c.set('user', payload)
     await next()
   } catch (err) {
-    console.error('JWT verification failed', err)
+    console.error('JWT verification failed:', err)
     return c.text('Unauthorized', 401)
   }
 })
