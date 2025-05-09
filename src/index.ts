@@ -5,8 +5,9 @@ const app = new Hono()
 
 // Auth middleware
 app.use('/api/protected', async (c, next) => {
-  const authHeader = c.req.header('Authorization')
-  console.log('Auth Header:', authHeader)
+  const req = c.req
+  const authHeader = req.header('Authorization')
+  console.log(`[${req.method}] ${req.path}`)
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     console.warn('Missing or malformed Authorization header')
@@ -14,12 +15,14 @@ app.use('/api/protected', async (c, next) => {
   }
 
   const token = authHeader.slice(7)
+  console.log('Auth Token Prefix:', token.slice(0, 10) + '...')
 
   try {
+    // Fetch JWKS
     const JWKS = await fetch(`https://${c.env.AUTH0_DOMAIN}/.well-known/jwks.json`).then(res => res.json())
-    console.log('JWKS keys:', JWKS.keys.map(k => k.kid))
+    const [key] = JWKS.keys // Still using first key for now
+    console.log('Using JWKS key ID:', key.kid)
 
-    const [key] = JWKS.keys // ⚠️ Temporary logic, we'll fix this later
     const keyData = await crypto.subtle.importKey(
       'jwk',
       key,
@@ -35,6 +38,18 @@ app.use('/api/protected', async (c, next) => {
 
     console.log('JWT Header:', protectedHeader)
     console.log('JWT Payload:', payload)
+
+    // Distinguish token type
+    const flowType = payload.sub?.includes('@clients') ? 'Machine-to-Machine (client credentials)' : 'User Token'
+    console.log('Token Type:', flowType)
+
+    // Optional: log roles or permissions
+    if (payload.permissions?.length) {
+      console.log('Permissions:', payload.permissions)
+    }
+    if ((payload as any)['https://your-app.com/roles']) {
+      console.log('Roles:', (payload as any)['https://your-app.com/roles'])
+    }
 
     c.set('user', payload)
     await next()
