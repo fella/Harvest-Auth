@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
-import { jwtVerify } from 'jose'
+import { jwtVerify, decodeProtectedHeader } from 'jose'
 
 const app = new Hono()
 
 // Auth middleware
+
 app.use('/api/protected', async (c, next) => {
   const req = c.req
   const authHeader = req.header('Authorization')
@@ -18,9 +19,20 @@ app.use('/api/protected', async (c, next) => {
   console.log('Auth Token Prefix:', token.slice(0, 10) + '...')
 
   try {
-    // Fetch JWKS
-    const JWKS = await fetch(`https://${c.env.AUTH0_DOMAIN}/.well-known/jwks.json`).then(res => res.json())
-    const [key] = JWKS.keys // Still using first key for now
+    // Step 1: Decode JWT header to extract `kid`
+    const { kid } = decodeProtectedHeader(token)
+    console.log('JWT Header kid:', kid)
+
+    // Step 2: Fetch JWKS from Auth0
+    const jwksUrl = `https://${c.env.AUTH0_DOMAIN}/.well-known/jwks.json`
+    const JWKS = await fetch(jwksUrl).then(res => res.json())
+
+    const key = JWKS.keys.find(k => k.kid === kid)
+    if (!key) {
+      console.error(`No matching JWKS key found for kid: ${kid}`)
+      return c.text('Unauthorized - JWKS key not found', 401)
+    }
+
     console.log('Using JWKS key ID:', key.kid)
 
     const keyData = await crypto.subtle.importKey(
@@ -36,19 +48,17 @@ app.use('/api/protected', async (c, next) => {
       audience: c.env.AUTH0_AUDIENCE
     })
 
-    console.log('JWT Header:', protectedHeader)
     console.log('JWT Payload:', payload)
 
-    // Distinguish token type
     const flowType = payload.sub?.includes('@clients') ? 'Machine-to-Machine (client credentials)' : 'User Token'
     console.log('Token Type:', flowType)
 
-    // Optional: log roles or permissions
     if (payload.permissions?.length) {
       console.log('Permissions:', payload.permissions)
     }
-    if ((payload as any)['https://your-app.com/roles']) {
-      console.log('Roles:', (payload as any)['https://your-app.com/roles'])
+
+    if ((payload as any)['https://harvorg.webdept.org/roles']) {
+      console.log('Roles:', (payload as any)['https://harvorg.webdept.org/roles'])
     }
 
     c.set('user', payload)
