@@ -69,10 +69,41 @@ app.use('/api/protected', async (c, next) => {
   }
 })
 
-// Protected route
-app.get('/api/protected', (c) => {
-  const user = c.get('user')
-  return c.json({ message: 'Access granted', user })
-})
+// Check for roles
+app.use('/api/protected', async (c, next) => {
+  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return c.text('Missing Authorization header', 401);
+
+  try {
+    const { payload } = await verifyToken(token, c.env); // Your jwtVerify logic
+
+    const roles = (payload as any)['https://harvorg.webdept.org/roles']?.split(',') || [];
+
+    // Only allow users with the 'Editor' role
+    if (!roles.includes('Editor')) {
+      return c.text('Forbidden: Insufficient role', 403);
+    }
+
+    c.set('user', payload);
+    await next();
+  } catch (err) {
+    console.error('JWT verification failed:', err);
+    return c.text('Unauthorized', 401);
+  }
+});
+
+// Check for roles
+app.get('/api/admin-only', (c) => {
+  const user = c.get('user');
+  const roles = (user as any)['https://harvorg.webdept.org/roles']?.split(',') || [];
+
+  if (!roles.includes('Admin')) {
+    return c.text('Forbidden: Admins only', 403);
+  }
+
+  return c.json({ message: 'Welcome, Admin!', user });
+});
+
+
 
 export default app
