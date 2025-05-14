@@ -3,7 +3,7 @@ import { jwtVerify, decodeProtectedHeader } from 'jose'
 
 const app = new Hono()
 
-// Auth middleware
+// Auth middleware here!
 
 app.use('/api/protected', async (c, next) => {
   const req = c.req
