@@ -1,6 +1,9 @@
 name = "auth0-api-worker"
 main = "src/index.ts"
 compatibility_date = "2025-05-08"
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
 
 [vars]
 AUTH0_DOMAIN = "dev-n6li42pa7lfgyazm.us.auth0.com"
